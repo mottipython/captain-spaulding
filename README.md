@@ -44,8 +44,9 @@ Everything in it is in the public domain in the United States.
 - **The music** is the film's own: Captain Spaulding's arrival, "Hello, I must be
   going", "Hooray for Captain Spaulding" by Bert Kalmar and Harry Ruby, and his
   dance, with the talk between left out (`tools/make_song.py`). The film and the song
-  entered the US public domain on 1 January 2026; elsewhere the song may still be in
-  copyright.
+  entered the US public domain on 1 January 2026. Outside the United States the song
+  may still be in copyright (its writers died in 1947 and 1974), so check the law
+  where you are before sharing the screensaver there.
 - **The supporting cast** (Margaret Dumont, Zeppo and two faces from the crowd) are
   cut from frames of the film, from the waist or the neck up (`tools/make_cast.py`).
 - **The stage** is from Pollock's toy-theatre scenes for *Jack the Giant Killer*
