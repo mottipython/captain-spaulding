@@ -771,13 +771,17 @@ static void stage_front(int w, int h, double open)
 
 /* ---- the supporting cast ----
  *
- * Margaret Dumont, Zeppo and a chorus line of heads, cut from frames of the film, at
- * the back of the stage behind a hedge, swaying on the beat like a South Park chorus
- * and flapping the tops of their heads on their own lines. Times are song times. */
+ * Margaret Dumont, Zeppo and a chorus line of heads, cut from frames of the film,
+ * held up on sticks right behind him, swaying on the beat like a South Park chorus
+ * and flapping the tops of their heads on their own lines, as sung in the film.
+ * Times are song times. */
 enum { C_DUMONT, C_ZEPPO, C_WOMAN, C_MAN };
-static const double ZEPPO_SINGS[][2] = {{9.4, 33.3}, {123.8, 133.7}, {140.2, 143.6}};
-static const double DUMONT_SINGS[][2] = {{87.2, 94.0}};
-static const double CHORUS_SINGS[][2] = {{38.6, 74.0}, {153.6, 155.7}, {212.1, SONG_LENGTH}};
+static const double ZEPPO_SINGS[][2] = {{9.4, 20.6}, {24.0, 29.8}, {33.6, 38.6}, {124.0, 133.7}, {140.2, 143.6}};
+static const double DUMONT_SINGS[][2] = {{87.2, 94.0}, {152.4, 155.2}};
+static const double CHORUS_SINGS[][2] = {{21.0, 23.6}, {30.0, 33.4}, {38.6, 74.0}, {104.0, 111.4}, {121.4, 123.6},
+                                         {155.2, 160.0}, {212.1, SONG_LENGTH}};
+/* where the whole company sings, Dumont and Zeppo with the chorus */
+static const double ALL_SING[][2] = {{38.6, 74.0}, {212.1, SONG_LENGTH}};
 
 /* one of them: the body's bottom middle at (x, y), `head` high from crown to mouth,
  * leaning `sway` degrees, the top of the head flipped `flap` degrees open */
@@ -814,13 +818,21 @@ static void stick(double x, double top, double floor, double lean)
     flush(ren);
 }
 
+/* how wide a cast member's mouth is when singing: the voices, and under them a steady
+ * flap twice a beat, South Park fashion, so a quiet line still reads as singing */
+static double mouth(double t, double ph)
+{
+    double q = sin(M_PI * fmod(2 * ph, 1.0));
+    return fmax(voice(t), 0.7 * q * q);
+}
+
 static void cast(int w, int h, double t)
 {
     double ph;
     int b = beat_at(t, &ph);
     double s = snap(ph), side = (b & 1) ? 1 : -1;
     double lean = side * (2 * s - 1);                  /* -1..1, a snap to the other side on every beat */
-    double floor = h * 0.73, head = h * 0.1, v = voice(t);
+    double floor = h * 0.73, head = h * 0.1, v = mouth(t, ph);
     double chorus = -30 * v * singing(t, CHORUS_SINGS, sizeof CHORUS_SINGS / sizeof *CHORUS_SINGS);
     /* right behind him, each held up on a stick: the chorus as heads on sticks, every
      * other one bobbing the other way, then Dumont and Zeppo nearer */
@@ -832,10 +844,12 @@ static void cast(int w, int h, double t)
     }
     double y = h * 0.6 - h * 0.012 * fabs(lean);
     stick(w * 0.29, y - h * 0.01, floor + h * 0.01, 6 * lean);
-    cast_member(C_DUMONT, w * 0.29, y, head, 6 * lean, -26 * v * singing(t, DUMONT_SINGS, 1));
+    double all = singing(t, ALL_SING, sizeof ALL_SING / sizeof *ALL_SING);
+    cast_member(C_DUMONT, w * 0.29, y, head, 6 * lean,
+                -26 * v * fmax(all, singing(t, DUMONT_SINGS, sizeof DUMONT_SINGS / sizeof *DUMONT_SINGS)));
     stick(w * 0.71, y - h * 0.01, floor + h * 0.01, -6 * lean);
     cast_member(C_ZEPPO, w * 0.71, y, head, -6 * lean,
-                -30 * v * singing(t, ZEPPO_SINGS, sizeof ZEPPO_SINGS / sizeof *ZEPPO_SINGS));
+                -30 * v * fmax(all, singing(t, ZEPPO_SINGS, sizeof ZEPPO_SINGS / sizeof *ZEPPO_SINGS)));
     flush(ren);
 }
 
