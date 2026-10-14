@@ -12,7 +12,9 @@ dancing to the song from the film. Runs on Linux, Windows and macOS. One of the
 The curtains open on a painted sunrise. He marches on from the wings and marks time
 while the chorus sings "Hooray for Captain Spaulding"; through "Hello, I must be
 going" he keeps setting off for the wings and coming back; and in his dance he
-kicks like a jumping jack, and every so often swings a leg right round its pin.
+kicks like a jumping jack with his arms flung up, does a can-can, windmills his
+arms, and every so often swings a leg right round its pin. Every move is a quick
+jerk on the beat, then a hold, like a paper doll worked by hand.
 Then a bow, the curtains close, and it begins again. He keeps time with the music
 the whole way: the beats were found from the recording.
 
@@ -29,7 +31,7 @@ Everything in it is in the public domain in the United States.
 
 - **Captain Spaulding** is cut from the 1930 publicity photograph of Groucho Marx in
   the part ([Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Animal_Crackers_Captain_Spaulding.jpg)),
-  into head, body, coat tails, thighs and shins, with a white paper edge and brass
+  into head, body, sleeves, thighs and shins, with a white paper edge and brass
   split pins (`tools/outline.py`, `tools/make_doll.py`).
 - **The music** is the film's own: Captain Spaulding's arrival, "Hello, I must be
   going", "Hooray for Captain Spaulding" by Bert Kalmar and Harry Ruby, and his
