@@ -114,7 +114,7 @@ To remake the pictures and music from their sources (the photograph in
     tools/make_doll.py
     tools/make_stage.py DIR_WITH_SCENES
     tools/make_cast.py
-    tools/make_song.py "Animal Crackers (1930).webm.1080p.vp9.webm"
+    tools/make_song.py "Animal Crackers (1930).mp4"
 
 Packages are written to `dist/`, using the container in `tools/Containerfile`:
 
