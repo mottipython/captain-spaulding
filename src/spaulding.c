@@ -297,9 +297,9 @@ static void start_song(void)
  * and it begins again.
  *
  * The song is the film's, cut together (tools/make_song.py): a time in the song after
- * SONG_PART2 is FILM_OFFSET seconds before the same moment in the film. */
+ * SONG_PART2 is FILM_OFFSET seconds before the same moment in the film. Film times
+ * are in the Wikimedia Commons 1080p copy, which runs at the true speed. */
 #define GAP 3.0                         /* seconds of quiet between one time round and the next */
-#define FILM_OFFSET 329.3
 #define FILM(m, s) ((m) * 60 + (s) - FILM_OFFSET)   /* a time in the film, as a time in the song */
 #define END (SONG_LENGTH - 4.5)          /* where the bow begins */
 static double T, anim_t;
@@ -361,18 +361,18 @@ static Pose mix(Pose a, Pose b, double f)
 enum { M_DANGLE, M_MARK, M_WAVE, M_GRIN, M_SHUFFLE, M_KICKS, M_CROUCH, M_HATWAVE, M_HUNCH, M_LOPE, M_SCISSOR, M_SWAY };
 static const struct { double from; int move; } ROUTINE[] = {
     {0, M_DANGLE}, {7.0, M_MARK}, {SONG_PART2, M_WAVE},
-    {FILM(7, 50), M_GRIN},        /* he grins at the crowd */
-    {FILM(7, 59), M_SHUFFLE},     /* the hat thrown up, a spin, and the shuffle begins */
-    {FILM(8, 3), M_KICKS},        /* high kicks and a hop */
-    {FILM(8, 5.5), M_CROUCH},     /* down in a crouch, a leg swept out */
-    {FILM(8, 8), M_SHUFFLE},      /* up again: the knock-kneed shuffle, hands at his lapels */
-    {FILM(8, 20), M_HATWAVE},     /* hat off and waved overhead, big kicks */
-    {FILM(8, 23), M_HUNCH},       /* hat back on, hunched over */
-    {FILM(8, 27), M_LOPE},        /* the kicking lope across the stage and back */
-    {FILM(8, 36.5), M_SCISSOR},   /* a spin, and scissor lunges */
-    {FILM(8, 43), M_HATWAVE},     /* a high kick, the hat waved, thrown and caught */
-    {FILM(8, 46.5), M_LOPE},      /* off towards the wings with the hat held low, and back */
-    {FILM(8, 50), M_SWAY},        /* the hat held before him, swaying, grinning */
+    {FILM(8, 10.5), M_GRIN},        /* he grins at the crowd */
+    {FILM(8, 19.9), M_SHUFFLE},     /* the hat thrown up, a spin, and the shuffle begins */
+    {FILM(8, 24.1), M_KICKS},        /* high kicks and a hop */
+    {FILM(8, 26.7), M_CROUCH},     /* down in a crouch, a leg swept out */
+    {FILM(8, 29.3), M_SHUFFLE},      /* up again: the knock-kneed shuffle, hands at his lapels */
+    {FILM(8, 41.8), M_HATWAVE},     /* hat off and waved overhead, big kicks */
+    {FILM(8, 46.7), M_HUNCH},       /* hat back on, hunched over */
+    {FILM(8, 50.9), M_LOPE},        /* the kicking lope across the stage and back */
+    {FILM(9, 0.8), M_SCISSOR},   /* a spin, and scissor lunges */
+    {FILM(9, 7.6), M_HATWAVE},     /* a high kick, the hat waved, thrown and caught */
+    {FILM(9, 11.2), M_LOPE},      /* off towards the wings with the hat held low, and back */
+    {FILM(9, 14.9), M_SWAY},        /* the hat held before him, swaying, grinning */
 };
 static int move_at(double t)
 {
@@ -467,17 +467,17 @@ static Pose key_pose(int b, double t)
 static double place_at(double t)
 {
     double x = 0.5;
-    if (t > SONG_PART2 && t < FILM(7, 46)) {            /* setting off for the wings, and back */
+    if (t > SONG_PART2 && t < FILM(8, 6.4)) {            /* setting off for the wings, and back */
         double u = fmod(t - SONG_PART2, 16.0);
         double going = ease(ramp(u, 4, 7)) * (1 - ease(ramp(u, 10, 13)));
         x += 0.28 * going * ((int)((t - SONG_PART2) / 16.0) % 2 ? -1 : 1);
     }
-    double a = FILM(8, 27), b = FILM(8, 36.5);         /* the lope: right, all the way left, back */
+    double a = FILM(8, 50.9), b = FILM(9, 0.8);         /* the lope: right, all the way left, back */
     if (t > a && t < b) {
         double u = ramp(t, a, b);
         x += u < 0.3 ? 0.3 * ease(u / 0.3) : u < 0.75 ? 0.3 - 0.6 * ease((u - 0.3) / 0.45) : -0.3 + 0.3 * ease((u - 0.75) / 0.25);
     }
-    a = FILM(8, 46.5); b = FILM(8, 50);                /* off towards the wings and back */
+    a = FILM(9, 11.2); b = FILM(9, 14.9);                /* off towards the wings and back */
     if (t > a && t < b) x += 0.32 * sin(M_PI * ramp(t, a, b));
     return x;
 }
@@ -485,11 +485,11 @@ static double place_at(double t)
 /* the leg loops, by song time: a leg right round its pin (0 left, 1 right), or both
  * legs swivelled round together (2) before they go round one at a time */
 static const struct { double at; int leg; } LOOPS[] = {
-    {FILM(8, 0.1), 2}, {FILM(8, 1.2), 0}, {FILM(8, 2.2), 1}, {FILM(8, 11), 1}, {FILM(8, 16.5), 0},
-    {FILM(8, 29.4), 2}, {FILM(8, 30.5), 1}, {FILM(8, 39.5), 0}, {FILM(8, 48), 1},
+    {FILM(8, 21.1), 2}, {FILM(8, 22.2), 0}, {FILM(8, 23.3), 1}, {FILM(8, 32.4), 1}, {FILM(8, 38.2), 0},
+    {FILM(8, 53.4), 2}, {FILM(8, 54.6), 1}, {FILM(9, 3.9), 0}, {FILM(9, 12.8), 1},
 };
-static const double SPINS[] = {FILM(7, 58.6), FILM(8, 9), FILM(8, 22.4), FILM(8, 36.5)};
-static const double TOSSES[][2] = {{FILM(7, 58.2), 1.5}, {FILM(8, 44.8), 1.4}};      /* when, how long up */
+static const double SPINS[] = {FILM(8, 19.5), FILM(8, 30.3), FILM(8, 44.3), FILM(9, 0.8)};
+static const double TOSSES[][2] = {{FILM(8, 19.1), 1.5}, {FILM(9, 9.5), 1.4}};      /* when, how long up */
 #define LOOP_TIME 0.9
 #define SPIN_TIME 0.7
 
@@ -505,7 +505,7 @@ static Hat hat_at(double t, Pose *p)
         }
     }
     int m = move_at(t);
-    if (h.mode == HAT_ON && (m == M_HATWAVE || m == M_SWAY || (m == M_LOPE && t > FILM(8, 46.5)))) h.mode = HAT_HAND;
+    if (h.mode == HAT_ON && (m == M_HATWAVE || m == M_SWAY || (m == M_LOPE && t > FILM(9, 11.2)))) h.mode = HAT_HAND;
     if (h.mode == HAT_ON && m == M_MARK) {             /* the tip of the hat */
         double ph; int b = beat_at(t, &ph);
         if ((b / 4) % 8 == 6) h.mode = HAT_HAND;
@@ -548,9 +548,9 @@ static Pose pose_at(double t, Hat *hat)
     }
     /* an arm windmill, twice round, now and then in the dance */
     {
-        double u = ramp(t, FILM(8, 25.2), FILM(8, 26.6));
+        double u = ramp(t, FILM(8, 49.0), FILM(8, 50.5));
         if (u > 0 && u < 1) { p.arm_l = 720 * u + 20; p.arm_r = -720 * u - 20; }
-        u = ramp(t, FILM(8, 41.2), FILM(8, 42.6));
+        u = ramp(t, FILM(9, 5.7), FILM(9, 7.2));
         if (u > 0 && u < 1) { p.arm_l = 720 * u + 20; p.arm_r = -720 * u - 20; }
     }
     *hat = hat_at(t, &p);

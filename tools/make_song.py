@@ -7,13 +7,13 @@ its beats, found from the music, so that the doll can dance in time.
 
     tools/make_song.py FILM
 
-FILM is the film, e.g. the Wikimedia Commons copy "Marx Brothers Animal Crackers
-(1930).webm". Needs ffmpeg and numpy.
+FILM is the film: the Wikimedia Commons copy of "Animal Crackers (1930).webm",
+whose 1080p version runs at the true speed (some other copies run 4% fast). Needs ffmpeg and numpy.
 """
 import subprocess, sys, tempfile, os, wave
 import numpy as np
 
-PARTS = [(299.0, 370.8), (400.5, 537.0)]     # seconds into the film
+PARTS = [(310.97, 385.81), (418.06, 562.19)]  # seconds into the film (the Commons 1080p copy)
 JOIN = 0.6                                   # crossfade between them
 RATE = 32000
 OUT, HDR = "assets/art/spaulding.ogg", "src/song.h"
@@ -56,8 +56,9 @@ def main(film):
         t = i1 / 100
     length = len(x) / RATE
     with open(HDR, "w") as f:
-        f.write("/* Made by tools/make_song.py: the beats of assets/audio/spaulding.ogg, in seconds. */\n")
+        f.write("/* Made by tools/make_song.py: the beats of assets/art/spaulding.ogg, in seconds. */\n")
         f.write(f"#define SONG_LENGTH {length:.2f}\n#define SONG_PART2 {a1 - a0 - JOIN:.2f}   /* where \"Hello, I must be going\" begins */\n")
+        f.write(f"#define FILM_OFFSET {b0 - (a1 - a0 - JOIN):.2f}   /* film time minus song time, from there on */\n")
         f.write(f"static const float BEAT[] = {{\n")
         for i in range(0, len(beats), 12):
             f.write("    " + ", ".join(f"{b:.2f}f" for b in beats[i:i + 12]) + ",\n")
