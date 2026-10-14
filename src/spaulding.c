@@ -61,7 +61,11 @@
 #define SPRITES \
     X(head, "sp_head.png") X(hat, "sp_hat.png") X(jaw, "sp_jaw.png") X(body, "sp_body.png") X(arm_l, "sp_arm_l.png") X(arm_r, "sp_arm_r.png") \
     X(thigh_l, "sp_thigh_l.png") X(thigh_r, "sp_thigh_r.png") X(shin_l, "sp_shin_l.png") X(shin_r, "sp_shin_r.png") \
-    X(pin, "sp_pin.png") X(backdrop, "backdrop.jpg") X(drape_l, "drape_l.png") X(drape_r, "drape_r.png")
+    X(pin, "sp_pin.png") X(backdrop, "backdrop.jpg") X(drape_l, "drape_l.png") X(drape_r, "drape_r.png") \
+    X(dumont_top, "cast_dumont_top.png") X(dumont_body, "cast_dumont_body.png") \
+    X(zeppo_top, "cast_zeppo_top.png") X(zeppo_body, "cast_zeppo_body.png") \
+    X(woman_top, "cast_woman_top.png") X(woman_body, "cast_woman_body.png") \
+    X(man_top, "cast_man_top.png") X(man_body, "cast_man_body.png")
 #define X(name, file) ART(name, file)
 SPRITES
 #undef X
@@ -73,6 +77,7 @@ static struct { const unsigned char *file, *end; int w, h; unsigned char *px; } 
 #undef X
 #include "doll.h"
 #include "song.h"
+#include "cast.h"
 static SDL_Texture **cur_tex; /* the pictures, for the renderer being drawn to */
 
 static void load_sprites(void)
@@ -515,6 +520,22 @@ static Hat hat_at(double t, Pose *p)
     return h;
 }
 
+/* how loud the voices are at t, 0..1 */
+static double voice(double t)
+{
+    int n = sizeof VOICE / sizeof *VOICE;
+    double f = t * VOICE_RATE;
+    int i = (int)f;
+    return i >= 0 && i + 1 < n ? (VOICE[i] + (VOICE[i + 1] - VOICE[i]) * (f - i)) / 255.0 : 0;
+}
+/* how far into one of a list of singing windows t is, 0..1, with a quick fade at the ends */
+static double singing(double t, const double (*win)[2], int n)
+{
+    double s = 0;
+    for (int i = 0; i < n; i++) s = fmax(s, ramp(t, win[i][0] - 0.15, win[i][0]) * (1 - ramp(t, win[i][1], win[i][1] + 0.15)));
+    return s;
+}
+
 static Pose pose_at(double t, Hat *hat)
 {
     double ph;
@@ -565,14 +586,8 @@ static Pose pose_at(double t, Hat *hat)
             {FILM(7, 57.6), FILM(8, 3.8)},     /* "I never take a drink unless somebody's buying" */
             {FILM(8, 7.4), FILM(8, 16.8)},     /* "I hate a dirty joke ... who knows how to tell it" */
         };
-        double sing = 0;
-        for (unsigned i = 0; i < sizeof SINGS / sizeof *SINGS; i++)
-            sing = fmax(sing, ramp(t, SINGS[i][0] - 0.15, SINGS[i][0]) * (1 - ramp(t, SINGS[i][1], SINGS[i][1] + 0.15)));
-        int n = sizeof VOICE / sizeof *VOICE;
-        double f = t * VOICE_RATE;
-        int i = (int)f;
-        double v = i + 1 < n ? (VOICE[i] + (VOICE[i + 1] - VOICE[i]) * (f - i)) / 255.0 : 0;
-        p.flap = -34 * v * sing;
+        double sing = singing(t, SINGS, sizeof SINGS / sizeof *SINGS);
+        p.flap = -34 * voice(t) * sing;
     }
     *hat = hat_at(t, &p);
     /* the bow at the end: a hop back, a deep nod, the hat swept wide */
@@ -754,6 +769,87 @@ static void stage_front(int w, int h, double open)
     flush(ren);
 }
 
+/* ---- the supporting cast ----
+ *
+ * Margaret Dumont, Zeppo and a chorus line of heads, cut from frames of the film, at
+ * the back of the stage behind a hedge, swaying on the beat like a South Park chorus
+ * and flapping the tops of their heads on their own lines. Times are song times. */
+enum { C_DUMONT, C_ZEPPO, C_WOMAN, C_MAN };
+static const double ZEPPO_SINGS[][2] = {{9.4, 33.3}, {123.8, 133.7}, {140.2, 143.6}};
+static const double DUMONT_SINGS[][2] = {{87.2, 94.0}};
+static const double CHORUS_SINGS[][2] = {{38.6, 74.0}, {153.6, 155.7}, {212.1, SONG_LENGTH}};
+
+/* one of them: the body's bottom middle at (x, y), `head` high from crown to mouth,
+ * leaning `sway` degrees, the top of the head flipped `flap` degrees open */
+static void cast_member(int who, double x, double y, double head, double sway, double flap)
+{
+    static const int TOP[] = {SP_dumont_top, SP_zeppo_top, SP_woman_top, SP_man_top};
+    static const int BODY[] = {SP_dumont_body, SP_zeppo_body, SP_woman_body, SP_man_body};
+    const Cast *c = &CAST[who];
+    int b = BODY[who], t = TOP[who];
+    if (!cur_tex || !cur_tex[b] || !cur_tex[t]) return;
+    flush(ren);
+    double k = head / c->head, bw = sprite[b].w * k, bh = sprite[b].h * k;
+    SDL_FRect d = {(float)(x - bw / 2), (float)(y - bh), (float)bw, (float)bh};
+    SDL_FPoint base = {(float)(bw / 2), (float)bh};
+    SDL_RenderCopyExF(ren, cur_tex[b], NULL, &d, sway, &base, SDL_FLIP_NONE);
+    double hx, hy;                                     /* the hinge, swayed with the body */
+    turn((c->body_x - sprite[b].w / 2.0) * k, (c->body_y - sprite[b].h) * k, sway, &hx, &hy);
+    hx += x; hy += y;
+    double tw = sprite[t].w * k, th = sprite[t].h * k;
+    SDL_FRect dt = {(float)(hx - c->top_x * k), (float)(hy - c->top_y * k), (float)tw, (float)th};
+    SDL_FPoint pin = {(float)(c->top_x * k), (float)(c->top_y * k)};
+    SDL_RenderCopyExF(ren, cur_tex[t], NULL, &dt, sway + flap, &pin, SDL_FLIP_NONE);
+}
+
+/* a hedge across the back of the stage, a printed cut-out ground row */
+static void hedge(int w, double top, double bottom)
+{
+    const Rgb LEAF = {72, 98, 58}, LEAF2 = {104, 132, 78};
+    int n = 34;
+    for (int pass = 0; pass < 3; pass++) {
+        for (int i = 0; i <= n; i++) {
+            double x = side_w + (w - 2 * side_w) * i / (double)n, r = (bottom - top) * (0.32 + 0.1 * sin(i * 2.7));
+            double y = top + r * 0.9 + (bottom - top) * 0.06 * sin(i * 1.3);
+            if (pass == 0) disc(x, y, r + unit * 0.25, col(INK, 1), col(INK, 1));
+            else if (pass == 1) disc(x, y, r, col(LEAF, 1), col(LEAF, 1));
+            else disc(x - r * 0.25, y - r * 0.3, r * 0.45, col(LEAF2, 0.8), col(LEAF2, 0));
+        }
+        if (pass == 1) rect(side_w, top + (bottom - top) * 0.5, w - 2 * side_w, (bottom - top) * 0.5, col(LEAF, 1));
+        flush(ren);
+    }
+    for (int i = 0; i < 160; i++) {                    /* engraved hatching */
+        double x = side_w + (w - 2 * side_w) * ((i * 0.618034) - floor(i * 0.618034));
+        double y = top + (bottom - top) * (0.35 + 0.6 * ((i * 0.381966) - floor(i * 0.381966)));
+        line(x, y, x + unit * 0.9, y - unit * 0.7, unit * 0.12, col(INK, 0.35));
+    }
+    line(side_w, bottom, w - side_w, bottom, unit * 0.3, col(INK, 1));
+    flush(ren);
+}
+
+static void cast(int w, int h, double t)
+{
+    double ph;
+    int b = beat_at(t, &ph);
+    double s = snap(ph), side = (b & 1) ? 1 : -1;
+    double lean = side * (2 * s - 1);                  /* -1..1, a snap to the other side on every beat */
+    double top = h * 0.672, bottom = h * 0.735, head = h * 0.068;
+    double v = voice(t);
+    double chorus = -30 * v * singing(t, CHORUS_SINGS, sizeof CHORUS_SINGS / sizeof *CHORUS_SINGS);
+    /* the chorus line, heads over the hedge, every other one bobbing the other way */
+    for (int i = 0; i < 6; i++) {
+        double x = w * (0.31 + 0.076 * i), alt = i & 1 ? -1 : 1;
+        int who = i & 1 ? C_MAN : C_WOMAN;
+        cast_member(who, x, top + h * 0.012 - h * 0.012 * (1 + lean * alt) / 2, head * 0.95, 7 * lean * alt, chorus * (0.8 + 0.2 * alt));
+    }
+    cast_member(C_DUMONT, w * 0.19, bottom - h * 0.02, head, 5 * lean,
+                -26 * v * singing(t, DUMONT_SINGS, 1));
+    cast_member(C_ZEPPO, w * 0.81, bottom - h * 0.02, head, -5 * lean,
+                -30 * v * singing(t, ZEPPO_SINGS, sizeof ZEPPO_SINGS / sizeof *ZEPPO_SINGS));
+    flush(ren);
+    hedge(w, top, bottom);
+}
+
 static void draw_scene(SDL_Renderer *r, int w, int h)
 {
     ren = r; sw = w; sh = h;
@@ -762,6 +858,7 @@ static void draw_scene(SDL_Renderer *r, int w, int h)
     SDL_RenderClear(r);
     double floor = h * 0.86;
     stage_back(w, h, h * 0.71);
+    cast(w, h, T);
     Hat hat;
     Pose p = pose_at(T, &hat);
     doll(p, hat, floor, h * 0.62);

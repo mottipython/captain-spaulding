@@ -12,7 +12,9 @@ dancing to the song from the film. Runs on Linux, Windows and macOS. One of the
 The curtains open on a painted sunrise and he is let down on to the stage on a
 string. He marks time while the chorus sings "Hooray for Captain Spaulding", and
 through "Hello, I must be going" keeps setting off for the wings and coming back.
-Then he does his dance as he does it in the film, move for move: the hat thrown up,
+Behind a hedge at the back of the stage, Margaret Dumont, Zeppo and a chorus line
+of heads, cut from frames of the film, sway on the beat and flap their heads on
+their own lines, as a South Park chorus would. Then he does his dance as he does it in the film, move for move: the hat thrown up,
 the knock-kneed shuffle, high kicks, a crouch, the hat waved overhead, a kicking
 lope across the stage and back, scissor kicks, and the hat held before him at the
 end. When he sings, the top of his head flaps open on its hinge in time with the
@@ -27,6 +29,8 @@ music the whole way. Then a bow, the curtains close, and it begins again.
 | Let down on a string | "Hello, I must be going" |
 | ![](docs/screenshots/04-the-swivel.jpg) | ![](docs/screenshots/05-the-lope.jpg) |
 | The swivel | The lope |
+| ![](docs/screenshots/07-the-chorus.jpg) | ![](docs/screenshots/06-the-bow.jpg) |
+| The chorus behind the hedge | The bow |
 
 ## Where it all comes from
 
@@ -41,6 +45,8 @@ Everything in it is in the public domain in the United States.
   dance, with the talk between left out (`tools/make_song.py`). The film and the song
   entered the US public domain on 1 January 2026; elsewhere the song may still be in
   copyright.
+- **The supporting cast** (Margaret Dumont, Zeppo and two faces from the crowd) are
+  cut from frames of the film, from the waist or the neck up (`tools/make_cast.py`).
 - **The stage** is from Pollock's toy-theatre scenes for *Jack the Giant Killer*
   (London, about 1850): the backdrop is Scene 4 and the curtains are cut from Scene
   11, from the Metropolitan Museum of Art's prints, released as CC0
@@ -107,6 +113,7 @@ To remake the pictures and music from their sources (the photograph in
 
     tools/make_doll.py
     tools/make_stage.py DIR_WITH_SCENES
+    tools/make_cast.py
     tools/make_song.py "Animal Crackers (1930).webm.1080p.vp9.webm"
 
 Packages are written to `dist/`, using the container in `tools/Containerfile`:
