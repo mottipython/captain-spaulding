@@ -22,6 +22,10 @@ BORDER = 5         # the white paper edge, in pixels
 # the pins, in the outline's coordinates
 NECK, HIP_L, HIP_R, KNEE_L, KNEE_R = (382, 196), (318, 452), (444, 452), (282, 690), (447, 690)
 SHOULDER_L, SHOULDER_R = (290, 245), (474, 245)
+# His head is cut across at the mouth, just under his moustache, so that the top of it
+# can flap open on a pin at the side of his face as he sings; behind it, his jaw
+# piece has a dark mouth.
+MOUTH, HINGE = 150, (338, 150)
 TAB = 26           # the radius of the round tab round a pin
 # Each piece: which part of him it is (a test on the outline's coordinates), the pin
 # it turns on (None for the body, which everything hangs from), and the pins it has
@@ -38,6 +42,7 @@ HAT = [(296, 104), (305, 95), (320, 82), (328, 55), (345, 37), (372, 31), (400, 
        (446, 92), (454, 106), (448, 122), (432, 132), (415, 130), (405, 96), (380, 90), (352, 92), (336, 100),
        (332, 135), (318, 142), (304, 128)]
 HAIR = (334, 80, 410, 112)          # an oval of black hair, where the hat was over his head
+FACE_LIT = (104, 172)                # the face in the brim's shade, from under it to the chin (y)
 # the part of the brim's underside that his face covers: filled dark on the hat
 UNDER = [(332, 135), (336, 100), (352, 92), (380, 90), (405, 96), (415, 130), (410, 112), (380, 106), (350, 108)]
 # the gap between his legs, where the tail of his coat shows behind: cut away
@@ -48,8 +53,9 @@ SEAT = [(262, 488), (267, 460), (282, 442), (300, 432), (325, 424), (350, 414), 
         (390, 407), (405, 420), (425, 427), (450, 435), (465, 445), (475, 465), (482, 488)]
 CROTCH = 380
 PIECES = [
-    ("head", lambda x, y: y < NECK[1] + 2, NECK, []),          # less the hat, plus his hair
+    ("head", lambda x, y: y < MOUTH, HINGE, []),                  # less the hat, plus his hair
     ("hat", None, None, []),
+    ("jaw", lambda x, y: (y >= MOUTH) & (y < NECK[1] + 2), NECK, [HINGE]),
     ("body", lambda x, y: (y >= NECK[1] + 2) & (y < 488), None, [NECK, SHOULDER_L, SHOULDER_R, HIP_L, HIP_R]),   # less the seat and arms
     ("arm_l", None, SHOULDER_L, []),
     ("arm_r", None, SHOULDER_R, []),
@@ -108,8 +114,12 @@ def main():
             m = whole & test(xs, ys)
             if name == "body": m &= ~legs & ~arms["arm_l"] & ~arms["arm_r"]
             if name == "head": m = (m & ~hat) | hair
+            if name == "jaw":                          # and the inside of his mouth, behind the top
+                lip = whole & ~hat & (ys >= MOUTH - 4) & (ys < MOUTH) & (xs > HINGE[0]) & (xs < 410)
+                inside = whole & ~hat & (ys >= MOUTH - 26) & (ys < MOUTH - 4) & (xs > HINGE[0] + 2) & (xs < 406)
+                m |= inside | lip                      # its top lip, tucked under the top piece
             if name.startswith("thigh"): m = whole & legs & (xs < CROTCH if name == "thigh_l" else xs >= CROTCH) & (ys < (KNEE_L if name == "thigh_l" else KNEE_R)[1] + 14)
-        if pin is not None:                            # its tab, round the pin it turns on,
+        if pin is not None and name != "head":         # its tab, round the pin it turns on,
             cx, cy = pins_px(pin)                      # of its own cloth
             disc = whole & (((xs * k - cx) ** 2 + (ys * k - cy) ** 2) < (TAB * k) ** 2)
             if name.startswith("thigh"): disc &= legs
@@ -117,11 +127,28 @@ def main():
         # the piece, with its white paper edge round it
         mi = Image.fromarray((m * 255).astype(np.uint8))
         edge = mi.filter(ImageFilter.MaxFilter(2 * int(BORDER * k) + 1))
+        # the white paper edge goes only round his outline: where one piece meets the next
+        # inside him there is none, so the joints show no white seams
+        e = (np.asarray(edge) > 0) & ~(whole & ~m)
+        if name == "hat": e = np.asarray(edge) > 0     # off his head, the hat is edged all round
+        edge = Image.fromarray((e * 255).astype(np.uint8))
         ys_, xs_ = np.nonzero(np.asarray(edge))
         x0, y0, x1, y1 = xs_.min(), ys_.min(), xs_.max() + 1, ys_.max() + 1
         piece = np.zeros((H, W, 4), np.uint8)
         piece[np.asarray(edge) > 0] = (250, 246, 236, 255)
         piece[m, :3] = rgb[m]
+        if name == "head":
+            # his face is in the shade of his helmet's brim in the photograph; with the
+            # helmet off it shouldn't be: lift it, most just under the brim and nothing
+            # by his chin, leaving the darkest parts (moustache, brows, glasses) as they are
+            v = rgb.astype(float)
+            g = v.mean(axis=2)
+            w = np.clip((FACE_LIT[1] - ys) / (FACE_LIT[1] - FACE_LIT[0]), 0, 1) * (ys > FACE_LIT[0] - 12)
+            w *= np.clip((g - 55) / 35, 0, 1)
+            lifted = 255 * (v / 255) ** (1 / (1 + 0.85 * w[..., None]))
+            piece[m, :3] = lifted[m].clip(0, 255).astype(np.uint8)
+        if name == "jaw":
+            piece[inside, :3] = (52, 16, 18)
         if name == "hat":                              # the underside of the brim, where his face was
             piece[under & ~hat, :3] = (40, 34, 30)
         if name == "head":                             # his hair, slicked black, with a shine

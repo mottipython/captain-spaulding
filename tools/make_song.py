@@ -55,6 +55,17 @@ def main(film):
             if not beats or b - beats[-1] > period * 0.6: beats.append(round(float(b), 2))
         t = i1 / 100
     length = len(x) / RATE
+    # how loud the voices are, twenty times a second: the sound in the voices' band,
+    # each moment against the loudest of the two seconds round it, so that every
+    # syllable opens his mouth
+    vw = os.path.join(tmp, "voice.wav")
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", wav, "-af", "highpass=f=300,lowpass=f=2800", "-ac", "1", "-ar", "8000", vw], check=True)
+    vv = wave.open(vw)
+    v = np.frombuffer(vv.readframes(vv.getnframes()), np.int16).astype(float) / 32768
+    hop = 400
+    ve = np.sqrt(np.add.reduceat(v * v, np.arange(0, len(v) - hop, hop)) / hop)
+    loud = np.array([ve[max(0, i - 20):i + 20].max() for i in range(len(ve))])
+    voice = np.clip((ve / (loud + 1e-6) - 0.35) / 0.55, 0, 1) * (loud > np.percentile(ve, 30))
     with open(HDR, "w") as f:
         f.write("/* Made by tools/make_song.py: the beats of assets/art/spaulding.ogg, in seconds. */\n")
         f.write(f"#define SONG_LENGTH {length:.2f}\n#define SONG_PART2 {a1 - a0 - JOIN:.2f}   /* where \"Hello, I must be going\" begins */\n")
@@ -62,6 +73,11 @@ def main(film):
         f.write(f"static const float BEAT[] = {{\n")
         for i in range(0, len(beats), 12):
             f.write("    " + ", ".join(f"{b:.2f}f" for b in beats[i:i + 12]) + ",\n")
+        f.write("};\n")
+        f.write("/* how loud the voices are, twenty times a second, 0..1 */\n#define VOICE_RATE 20\nstatic const unsigned char VOICE[] = {\n")
+        q = (voice * 255).astype(int)
+        for i in range(0, len(q), 30):
+            f.write("    " + ",".join(str(c) for c in q[i:i + 30]) + ",\n")
         f.write("};\n")
     print(f"{OUT}: {length:.1f} s, {os.path.getsize(OUT) // 1024} KB, {len(beats)} beats, about {60 * len(beats) / length:.0f} a minute")
 

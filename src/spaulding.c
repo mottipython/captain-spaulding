@@ -59,7 +59,7 @@
  * tools/make_doll.py, which also writes where their pins are (doll.h); the backdrop
  * and the curtains are from Pollock's toy-theatre scenes, cut by tools/make_stage.py. */
 #define SPRITES \
-    X(head, "sp_head.png") X(hat, "sp_hat.png") X(body, "sp_body.png") X(arm_l, "sp_arm_l.png") X(arm_r, "sp_arm_r.png") \
+    X(head, "sp_head.png") X(hat, "sp_hat.png") X(jaw, "sp_jaw.png") X(body, "sp_body.png") X(arm_l, "sp_arm_l.png") X(arm_r, "sp_arm_r.png") \
     X(thigh_l, "sp_thigh_l.png") X(thigh_r, "sp_thigh_r.png") X(shin_l, "sp_shin_l.png") X(shin_r, "sp_shin_r.png") \
     X(pin, "sp_pin.png") X(backdrop, "backdrop.jpg") X(drape_l, "drape_l.png") X(drape_r, "drape_r.png")
 #define X(name, file) ART(name, file)
@@ -340,9 +340,10 @@ static int beat_at(double t, double *phase)
  * heights), the turn of each piece about its pin in degrees (for an arm or a leg,
  * plus swings it out to the left), and how far round he has spun (1 facing us, -1
  * turned about, as a card is turned); `hang` is how far he is held up by his string
- * (as in a swivel, with both feet off the floor). Then the hat: on his head, in his right hand,
+ * (as in a swivel, with both feet off the floor); `flap` how far the top of his head
+ * is flipped open on its hinge as he sings. Then the hat: on his head, in his right hand,
  * or flying, and where. */
-typedef struct { double x, hop, body, head, arm_l, arm_r, thigh_l, shin_l, thigh_r, shin_r, spin, drop, hang; } Pose;
+typedef struct { double x, hop, body, head, arm_l, arm_r, thigh_l, shin_l, thigh_r, shin_r, spin, drop, hang, flap; } Pose;
 enum { HAT_ON, HAT_HAND, HAT_FLYING };
 typedef struct { int mode; double x, y, turn; } Hat;
 
@@ -553,6 +554,16 @@ static Pose pose_at(double t, Hat *hat)
         u = ramp(t, FILM(9, 5.7), FILM(9, 7.2));
         if (u > 0 && u < 1) { p.arm_l = 720 * u + 20; p.arm_r = -720 * u - 20; }
     }
+    /* singing: the top of his head flaps open with the voices, as in South Park, all
+     * through the songs (not while he dances, nor at the bow) */
+    {
+        int n = sizeof VOICE / sizeof *VOICE;
+        double f = t * VOICE_RATE;
+        int i = (int)f;
+        double v = i + 1 < n ? (VOICE[i] + (VOICE[i + 1] - VOICE[i]) * (f - i)) / 255.0 : 0;
+        double sing = ramp(t, 7.5, 8.5) * (1 - ramp(t, FILM(8, 18.0), FILM(8, 18.6))) + ramp(t, FILM(8, 51), FILM(8, 52)) * (1 - ramp(t, END - 0.5, END));
+        p.flap = -34 * v * sing;
+    }
     *hat = hat_at(t, &p);
     /* the bow at the end: a hop back, a deep nod, the hat swept wide */
     double bow = ease(ramp(t, END, END + 0.4)) * (1 - ease(ramp(t, END + 3.0, END + 3.4)));
@@ -593,7 +604,7 @@ static void piece(int which, int idx, double wx, double wy, double angle, double
     SDL_FPoint centre = {(float)px, (float)(pc->pin_y * k)};
     SDL_RenderCopyExF(ren, cur_tex[which], NULL, &dst, back ? -angle : angle, &centre, back ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE);
 }
-enum { P_HEAD, P_HAT, P_BODY, P_ARM_L, P_ARM_R, P_THIGH_L, P_THIGH_R, P_SHIN_L, P_SHIN_R };
+enum { P_HEAD, P_HAT, P_JAW, P_BODY, P_ARM_L, P_ARM_R, P_THIGH_L, P_THIGH_R, P_SHIN_L, P_SHIN_R };
 
 /* The doll, standing on the stage floor at `floor`, `tall` high. Every piece hangs
  * from the one above it by its pin; the lower foot is put on the floor. */
@@ -608,7 +619,10 @@ static void doll(Pose p, Hat hat, double floor, double tall)
     turn(REL(P_BODY), p.body, &bx, &by);
     turn(REL(P_ARM_L), p.body, &alx, &aly);
     turn(REL(P_ARM_R), p.body, &arx, &ary);
-    turn(REL(P_HEAD), p.body, &nx, &ny);
+    turn(REL(P_JAW), p.body, &nx, &ny);
+    double tx, ty;                                      /* the hinge of his head, on the jaw */
+    turn(PIECE[P_HEAD].at_x - PIECE[P_JAW].at_x, PIECE[P_HEAD].at_y - PIECE[P_JAW].at_y, p.body + p.head, &tx, &ty);
+    tx += nx; ty += ny;
     turn(REL(P_THIGH_L), p.body, &hlx, &hly);
     turn(REL(P_THIGH_R), p.body, &hrx, &hry);
     double klx, kly, krx, kry, flx, fly, frx, fry;
@@ -628,8 +642,8 @@ static void doll(Pose p, Hat hat, double floor, double tall)
     double hx, hy, ha;
     {
         double dx, dy;
-        turn(PIECE[P_HAT].at_x - PIECE[P_HEAD].at_x, PIECE[P_HAT].at_y - PIECE[P_HEAD].at_y, p.body + p.head, &dx, &dy);
-        hx = nx + dx; hy = ny + dy; ha = p.body + p.head;
+        turn(PIECE[P_HAT].at_x - PIECE[P_HEAD].at_x, PIECE[P_HAT].at_y - PIECE[P_HEAD].at_y, p.body + p.head + p.flap, &dx, &dy);
+        hx = tx + dx; hy = ty + dy; ha = p.body + p.head + p.flap;
         if (hat.mode == HAT_FLYING) { hx += hat.x * 916; hy += hat.y * 916; ha += hat.turn; }
         if (hat.mode == HAT_HAND) {                    /* at the end of his right sleeve */
             double tx, ty, len = sprite[SP_arm_r].h - PIECE[P_ARM_R].pin_y;
@@ -662,10 +676,14 @@ static void doll(Pose p, Hat hat, double floor, double tall)
     piece(SP_thigh_l, P_THIGH_L, ox + hlx * k, oy + hly * k, p.body + p.thigh_l, k);
     piece(SP_thigh_r, P_THIGH_R, ox + hrx * k, oy + hry * k, p.body + p.thigh_r, k);
     piece(SP_body, P_BODY, ox + bx * k, oy + by * k, p.body, k);
-    piece(SP_head, P_HEAD, ox + nx * k, oy + ny * k, p.body + p.head, k);
+    /* worn, the hat goes behind his head: its underside is painted dark for when it is
+     * off, and on his head it would shade his face */
+    if (hat.mode == HAT_ON) piece(SP_hat, P_HAT, ox + hx * k, oy + hy * k, ha, k);
+    piece(SP_jaw, P_JAW, ox + nx * k, oy + ny * k, p.body + p.head, k);
+    piece(SP_head, P_HEAD, ox + tx * k, oy + ty * k, p.body + p.head + p.flap, k);
     piece(SP_arm_l, P_ARM_L, ox + alx * k, oy + aly * k, p.body + p.arm_l, k);
     piece(SP_arm_r, P_ARM_R, ox + arx * k, oy + ary * k, p.body + p.arm_r, k);
-    piece(SP_hat, P_HAT, ox + hx * k, oy + hy * k, ha, k);
+    if (hat.mode != HAT_ON) piece(SP_hat, P_HAT, ox + hx * k, oy + hy * k, ha, k);
     double pins[][2] = {{nx, ny}, {alx, aly}, {arx, ary}, {hlx, hly}, {hrx, hry}, {klx, kly}, {krx, kry}};
     for (int i = 0; i < 7; i++) {
         double r = 7 * k * 1.4 * fabs(p.spin);

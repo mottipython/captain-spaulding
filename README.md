@@ -15,15 +15,16 @@ through "Hello, I must be going" keeps setting off for the wings and coming back
 Then he does his dance as he does it in the film, move for move: the hat thrown up,
 the knock-kneed shuffle, high kicks, a crouch, the hat waved overhead, a kicking
 lope across the stage and back, scissor kicks, and the hat held before him at the
-end. And because he is a paper doll he does what no man could: his legs swivel
+end. When he sings, the top of his head flaps open on its hinge in time with the
+voices. And because he is a paper doll he does what no man could: his legs swivel
 right round their pins together, and then one at a time. Every move is a quick
 jerk on the beat and a hold, like a doll worked by hand. He keeps time with the
 music the whole way. Then a bow, the curtains close, and it begins again.
 
 | | |
 |---|---|
-| ![](docs/screenshots/02-let-down-on-a-string.jpg) | ![](docs/screenshots/03-hooray.jpg) |
-| Let down on a string | Hooray for Captain Spaulding |
+| ![](docs/screenshots/02-let-down-on-a-string.jpg) | ![](docs/screenshots/03-hello-i-must-be-going.jpg) |
+| Let down on a string | "Hello, I must be going" |
 | ![](docs/screenshots/04-the-swivel.jpg) | ![](docs/screenshots/05-the-lope.jpg) |
 | The swivel | The lope |
 
