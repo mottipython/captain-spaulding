@@ -3,7 +3,8 @@
  * doll (at rest) that pin is. Pixels, at the scale of the pictures. */
 typedef struct { double pin_x, pin_y, at_x, at_y; } Piece;
 static const Piece PIECE[] = {
-    /* head     */ {91.1, 170.1, 382.0, 196.0},
+    /* head     */ {55.7, 120.9, 382.0, 196.0},
+    /* hat      */ {82.9, 61.9, 373.9, 87.9},
     /* body     */ {123.2, 149.8, 383.5, 343.2},
     /* arm_l    */ {52.9, 35.1, 290.0, 245.0},
     /* arm_r    */ {30.6, 39.8, 474.0, 245.0},

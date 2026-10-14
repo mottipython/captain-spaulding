@@ -59,7 +59,7 @@
  * tools/make_doll.py, which also writes where their pins are (doll.h); the backdrop
  * and the curtains are from Pollock's toy-theatre scenes, cut by tools/make_stage.py. */
 #define SPRITES \
-    X(head, "sp_head.png") X(body, "sp_body.png") X(arm_l, "sp_arm_l.png") X(arm_r, "sp_arm_r.png") \
+    X(head, "sp_head.png") X(hat, "sp_hat.png") X(body, "sp_body.png") X(arm_l, "sp_arm_l.png") X(arm_r, "sp_arm_r.png") \
     X(thigh_l, "sp_thigh_l.png") X(thigh_r, "sp_thigh_r.png") X(shin_l, "sp_shin_l.png") X(shin_r, "sp_shin_r.png") \
     X(pin, "sp_pin.png") X(backdrop, "backdrop.jpg") X(drape_l, "drape_l.png") X(drape_r, "drape_r.png")
 #define X(name, file) ART(name, file)
@@ -287,16 +287,23 @@ static void start_song(void)
 
 /* ---- the show ----
  *
- * One time-line, the song's: T seconds into it. The curtains open, he marches on and
- * marks time while the chorus sings, sways and keeps making for the wings through
- * "Hello, I must be going", and in his dance kicks his legs up like a jumping jack
- * and now and then swings one right round its pin. Then a bow, and the curtains
- * close, and it begins again. */
+ * One time-line, the song's: T seconds into it. The curtains open and he is let down
+ * on to the stage on a string. He marks time while the chorus sings, keeps setting
+ * off for the wings through "Hello, I must be going", and then does his dance as he
+ * does it in the film, move for move: the hat thrown up, the knock-kneed shuffle,
+ * high kicks, a crouch, the hat waved overhead, a kicking lope across the stage,
+ * scissor lunges, and the hat held before him at the end; and now and then a leg
+ * goes right round its pin, which no man could do. Then a bow, the curtains close,
+ * and it begins again.
+ *
+ * The song is the film's, cut together (tools/make_song.py): a time in the song after
+ * SONG_PART2 is FILM_OFFSET seconds before the same moment in the film. */
 #define GAP 3.0                         /* seconds of quiet between one time round and the next */
+#define FILM_OFFSET 329.3
+#define FILM(m, s) ((m) * 60 + (s) - FILM_OFFSET)   /* a time in the film, as a time in the song */
+#define END (SONG_LENGTH - 4.5)          /* where the bow begins */
 static double T, anim_t;
 static uint64_t seed_state;
-#define DANCE 162.5                     /* where his dance begins in the song */
-#define END (SONG_LENGTH - 4.5)          /* where the bow begins */
 
 static uint64_t next_rand(void)
 {
@@ -329,12 +336,18 @@ static int beat_at(double t, double *phase)
     return lo;
 }
 
-/* the doll's pose: where he stands (across the stage, 0..1), how high he hops, and
- * the turn of each piece about its pin, in degrees (clockwise) */
-typedef struct { double x, hop, body, head, arm_l, arm_r, thigh_l, shin_l, thigh_r, shin_r; } Pose;
+/* The doll's pose: where he stands (across the stage, 0..1), how high he hops (in his
+ * heights), the turn of each piece about its pin in degrees (for an arm or a leg,
+ * plus swings it out to the left), and how far round he has spun (1 facing us, -1
+ * turned about, as a card is turned); `hang` is how far he is held up by his string
+ * (as in a swivel, with both feet off the floor). Then the hat: on his head, in his right hand,
+ * or flying, and where. */
+typedef struct { double x, hop, body, head, arm_l, arm_r, thigh_l, shin_l, thigh_r, shin_r, spin, drop, hang; } Pose;
+enum { HAT_ON, HAT_HAND, HAT_FLYING };
+typedef struct { int mode; double x, y, turn; } Hat;
 
-/* Two poses a beat apart, and the snap from one to the other: like a paper doll
- * worked by a hand, every move is a quick jerk at the start of the beat, then a hold. */
+/* Two poses a beat apart, and the snap from one to the other: like a paper doll worked
+ * by a hand, every move is a quick jerk at the start of the beat, then a hold. */
 static double snap(double ph) { return ease(fmin(1, ph / 0.16)); }
 static Pose mix(Pose a, Pose b, double f)
 {
@@ -343,71 +356,205 @@ static Pose mix(Pose a, Pose b, double f)
     for (unsigned i = 0; i < sizeof p / sizeof(double); i++) pp[i] = pa[i] + (pb[i] - pa[i]) * f;
     return p;
 }
-/* The pose he jerks into on beat b, in each part of the song. Angles are degrees about
- * each piece's pin; for an arm or a leg, plus swings it out to the left. */
+
+/* the moves, from the film */
+enum { M_DANGLE, M_MARK, M_WAVE, M_GRIN, M_SHUFFLE, M_KICKS, M_CROUCH, M_HATWAVE, M_HUNCH, M_LOPE, M_SCISSOR, M_SWAY };
+static const struct { double from; int move; } ROUTINE[] = {
+    {0, M_DANGLE}, {7.0, M_MARK}, {SONG_PART2, M_WAVE},
+    {FILM(7, 50), M_GRIN},        /* he grins at the crowd */
+    {FILM(7, 59), M_SHUFFLE},     /* the hat thrown up, a spin, and the shuffle begins */
+    {FILM(8, 3), M_KICKS},        /* high kicks and a hop */
+    {FILM(8, 5.5), M_CROUCH},     /* down in a crouch, a leg swept out */
+    {FILM(8, 8), M_SHUFFLE},      /* up again: the knock-kneed shuffle, hands at his lapels */
+    {FILM(8, 20), M_HATWAVE},     /* hat off and waved overhead, big kicks */
+    {FILM(8, 23), M_HUNCH},       /* hat back on, hunched over */
+    {FILM(8, 27), M_LOPE},        /* the kicking lope across the stage and back */
+    {FILM(8, 36.5), M_SCISSOR},   /* a spin, and scissor lunges */
+    {FILM(8, 43), M_HATWAVE},     /* a high kick, the hat waved, thrown and caught */
+    {FILM(8, 46.5), M_LOPE},      /* off towards the wings with the hat held low, and back */
+    {FILM(8, 50), M_SWAY},        /* the hat held before him, swaying, grinning */
+};
+static int move_at(double t)
+{
+    int m = M_DANGLE;
+    for (unsigned i = 0; i < sizeof ROUTINE / sizeof *ROUTINE; i++) if (t >= ROUTINE[i].from) m = ROUTINE[i].move;
+    return m;
+}
+
+/* the pose he jerks into on beat b */
 static Pose key_pose(int b, double t)
 {
     Pose p = {0};
+    p.spin = 1;
     int odd = b & 1, bar = b / 4, in_bar = b % 4;
     double side = odd ? 1 : -1;
-    if (t < 13) {                                  /* marching on: a high strut, arms pumping */
-        p.thigh_l = odd ? 38 : -8; p.shin_l = odd ? -50 : 0;
-        p.thigh_r = odd ? 8 : -38; p.shin_r = odd ? 0 : 50;
-        p.arm_l = odd ? -35 : 55; p.arm_r = odd ? -55 : 35;
-        p.head = 8 * side; p.body = 3 * side;
-    } else if (t < SONG_PART2) {                   /* marking time, as the chorus sings */
+    switch (move_at(t)) {
+    case M_DANGLE:                                 /* hanging on his string, limbs loose */
+        p.thigh_l = 12 * side; p.thigh_r = 12 * side; p.shin_l = -8 * side; p.shin_r = -8 * side;
+        p.arm_l = 30 + 15 * side; p.arm_r = -30 + 15 * side; p.head = 6 * side;
+        break;
+    case M_MARK:                                   /* marking time, as the chorus sings */
         p.thigh_l = odd ? 45 : 0; p.shin_l = odd ? -70 : 0;
         p.thigh_r = odd ? 0 : -45; p.shin_r = odd ? 0 : 70;
         p.arm_l = odd ? 20 : 95; p.arm_r = odd ? -95 : -20;
         p.head = 10 * side; p.body = 4 * side;
         if (bar % 4 == 3) { p.arm_l = 150; p.arm_r = -150; p.head = -12; }   /* hooray! */
-    } else if (t < DANCE) {                        /* "Hello, I must be going": waving goodbye */
+        if (bar % 8 == 6) { p.arm_r = -150; p.arm_l = 20; p.head = 14; }      /* a tip of the hat */
+        break;
+    case M_WAVE:                                   /* "Hello, I must be going": waving goodbye */
         p.arm_l = 155 + 22 * side; p.arm_r = -30;
         p.thigh_l = odd ? 30 : 0; p.shin_l = odd ? -45 : 0;
         p.thigh_r = odd ? 0 : -30; p.shin_r = odd ? 0 : 45;
         p.head = 12 * side; p.body = -3 * side;
         if (bar % 2) { p.arm_l = 30; p.arm_r = -155 - 22 * side; }
-    } else {                                       /* the dance: a jumping jack on every beat */
-        p.thigh_l = odd ? 55 : 0; p.thigh_r = odd ? -55 : 0;
-        p.shin_l = odd ? -20 : 0; p.shin_r = odd ? 20 : 0;
-        p.arm_l = odd ? 165 : 25; p.arm_r = odd ? -165 : -25;
-        p.hop = odd ? 0.05 : 0;
-        p.head = 16 * side; p.body = 6 * side;
-        if (bar % 3 == 1) {                        /* a can-can: one leg kicked high, then the other */
-            p.thigh_l = in_bar & 1 ? 0 : 95; p.thigh_r = in_bar & 1 ? -95 : 0;
-            p.shin_l = 0; p.shin_r = 0;
-            p.arm_l = 70; p.arm_r = -70; p.hop = 0.03;
-        }
+        break;
+    case M_GRIN:                                   /* grinning, hands at his lapels, a bob */
+        p.arm_l = -28; p.arm_r = 28;
+        p.thigh_l = 6; p.thigh_r = -6; p.shin_l = odd ? -14 : 0; p.shin_r = odd ? 0 : 14;
+        p.head = 9 * side; p.body = 2 * side;
+        break;
+    case M_SHUFFLE:                                /* knock-kneed, hopping from foot to foot */
+        p.thigh_l = odd ? -16 : 6; p.shin_l = odd ? 46 : -10;
+        p.thigh_r = odd ? -6 : 16; p.shin_r = odd ? 10 : -46;
+        p.arm_l = -30; p.arm_r = 30;
+        p.hop = odd ? 0.025 : 0.01; p.head = 11 * side; p.body = -5 * side;
+        p.x = 0.035 * side;
+        break;
+    case M_KICKS:                                  /* high kicks, one leg then the other */
+        p.thigh_l = in_bar == 0 ? 105 : 0; p.thigh_r = in_bar == 2 ? -105 : 0;
+        p.shin_l = in_bar == 0 ? -15 : 0; p.shin_r = in_bar == 2 ? 15 : 0;
+        p.arm_l = in_bar == 2 ? 120 : 40; p.arm_r = in_bar == 0 ? -120 : -40;
+        p.hop = in_bar & 1 ? 0.04 : 0; p.body = in_bar == 0 ? -10 : in_bar == 2 ? 10 : 0;
+        p.head = -p.body * 1.5;
+        break;
+    case M_CROUCH:                                 /* down low, knees out, a leg swept out */
+        p.thigh_l = 75; p.shin_l = -150; p.thigh_r = -75; p.shin_r = 150;
+        if (odd) { p.thigh_r = -88; p.shin_r = 0; }
+        p.arm_l = 80; p.arm_r = -80; p.head = 12 * side; p.body = 5 * side;
+        break;
+    case M_HATWAVE:                                /* the hat waved overhead, kicking */
+        p.arm_r = -165 + 20 * side; p.arm_l = 60;
+        p.thigh_l = in_bar == 1 ? 95 : 0; p.thigh_r = in_bar == 3 ? -95 : 0;
+        p.hop = in_bar & 1 ? 0.04 : 0; p.head = -10 * side; p.body = 6 * side;
+        break;
+    case M_HUNCH:                                  /* hunched over, a crouching step */
+        p.body = 14; p.head = 16;
+        p.thigh_l = odd ? 50 : 20; p.shin_l = odd ? -90 : -40;
+        p.thigh_r = odd ? -20 : -50; p.shin_r = odd ? 40 : 90;
+        p.arm_l = 50; p.arm_r = -20;
+        break;
+    case M_LOPE:                                   /* the kicking lope: knee up, foot flung out */
+        p.thigh_l = odd ? 70 : -20; p.shin_l = odd ? -40 : 0;
+        p.thigh_r = odd ? 20 : -70; p.shin_r = odd ? 0 : 40;
+        p.arm_l = odd ? -30 : 70; p.arm_r = odd ? -70 : 30;
+        p.body = 8; p.head = 6 * side; p.hop = 0.02;
+        break;
+    case M_SCISSOR:                                /* legs flung wide, one kicked high, arms up */
+        p.thigh_l = odd ? 100 : 40; p.thigh_r = odd ? -40 : -100;
+        p.arm_l = 150; p.arm_r = -150;
+        p.hop = 0.05; p.body = 7 * side; p.head = -12 * side;
+        break;
+    case M_SWAY:                                   /* the hat held in front, swaying, grinning */
+        p.arm_r = 30; p.arm_l = -20;
+        p.body = 6 * side; p.head = 12 * side;
+        p.thigh_l = 4 * side; p.thigh_r = 4 * side;
+        break;
     }
     return p;
 }
-static Pose pose_at(double t)
+
+/* where he moves across the stage */
+static double place_at(double t)
+{
+    double x = 0.5;
+    if (t > SONG_PART2 && t < FILM(7, 46)) {            /* setting off for the wings, and back */
+        double u = fmod(t - SONG_PART2, 16.0);
+        double going = ease(ramp(u, 4, 7)) * (1 - ease(ramp(u, 10, 13)));
+        x += 0.28 * going * ((int)((t - SONG_PART2) / 16.0) % 2 ? -1 : 1);
+    }
+    double a = FILM(8, 27), b = FILM(8, 36.5);         /* the lope: right, all the way left, back */
+    if (t > a && t < b) {
+        double u = ramp(t, a, b);
+        x += u < 0.3 ? 0.3 * ease(u / 0.3) : u < 0.75 ? 0.3 - 0.6 * ease((u - 0.3) / 0.45) : -0.3 + 0.3 * ease((u - 0.75) / 0.25);
+    }
+    a = FILM(8, 46.5); b = FILM(8, 50);                /* off towards the wings and back */
+    if (t > a && t < b) x += 0.32 * sin(M_PI * ramp(t, a, b));
+    return x;
+}
+
+/* the leg loops, by song time: a leg right round its pin (0 left, 1 right), or both
+ * legs swivelled round together (2) before they go round one at a time */
+static const struct { double at; int leg; } LOOPS[] = {
+    {FILM(8, 0.1), 2}, {FILM(8, 1.2), 0}, {FILM(8, 2.2), 1}, {FILM(8, 11), 1}, {FILM(8, 16.5), 0},
+    {FILM(8, 29.4), 2}, {FILM(8, 30.5), 1}, {FILM(8, 39.5), 0}, {FILM(8, 48), 1},
+};
+static const double SPINS[] = {FILM(7, 58.6), FILM(8, 9), FILM(8, 22.4), FILM(8, 36.5)};
+static const double TOSSES[][2] = {{FILM(7, 58.2), 1.5}, {FILM(8, 44.8), 1.4}};      /* when, how long up */
+#define LOOP_TIME 0.9
+#define SPIN_TIME 0.7
+
+static Hat hat_at(double t, Pose *p)
+{
+    Hat h = {HAT_ON, 0, 0, 0};
+    for (unsigned i = 0; i < sizeof TOSSES / sizeof *TOSSES; i++) {
+        double u = ramp(t, TOSSES[i][0], TOSSES[i][0] + TOSSES[i][1]);
+        if (u > 0 && u < 1) {                          /* up, round and round, and back down on */
+            h.mode = HAT_FLYING;
+            h.y = -0.62 * 4 * u * (1 - u); h.x = 0.04 * sin(u * 2 * M_PI); h.turn = 720 * u;
+            p->arm_r = -150; p->arm_l = 150;
+        }
+    }
+    int m = move_at(t);
+    if (h.mode == HAT_ON && (m == M_HATWAVE || m == M_SWAY || (m == M_LOPE && t > FILM(8, 46.5)))) h.mode = HAT_HAND;
+    if (h.mode == HAT_ON && m == M_MARK) {             /* the tip of the hat */
+        double ph; int b = beat_at(t, &ph);
+        if ((b / 4) % 8 == 6) h.mode = HAT_HAND;
+    }
+    if (t > END) h.mode = HAT_HAND;
+    return h;
+}
+
+static Pose pose_at(double t, Hat *hat)
 {
     double ph;
     int b = beat_at(t, &ph);
     Pose p = mix(key_pose(b - 1, t), key_pose(b, t), snap(ph));
-    /* where he is: marching on from the left wing to centre stage, and then, while he
-     * sings that he must be going, setting off for the wings and coming back */
-    p.x = -0.25 + 0.75 * ease(ramp(t, 3, 13));
-    if (t > SONG_PART2 && t < DANCE - 4) {
-        double u = fmod(t - SONG_PART2, 16.0);
-        double going = ease(ramp(u, 4, 7)) * (1 - ease(ramp(u, 10, 13)));
-        p.x += 0.28 * going * ((int)((t - SONG_PART2) / 16.0) % 2 ? -1 : 1);
-    }
-    if (t >= DANCE) {
-        int bar = b / 4, in_bar = b % 4;
-        double round = (in_bar + ph) / 4;          /* through the bar, 0..1 */
-        /* every fourth bar a leg goes right round its pin, fast */
-        if (bar % 4 == 3) {
-            double turn = 360 * ease(fmin(1, round * 1.6));
-            if (bar % 8 == 3) { p.thigh_l = turn; p.shin_l = 25 * sin(M_PI * round); }
-            else { p.thigh_r = -turn; p.shin_r = -25 * sin(M_PI * round); }
-            p.hop = 0.05 * sin(M_PI * round);
+    p.x += place_at(t);
+    /* let down on the string at the start, with a bounce as he lands */
+    p.drop = 1.4 * (1 - ease(ramp(t, 2.5, 5.5)));
+    if (t > 5.5 && t < 7.5) p.hop += 0.09 * fabs(sin((t - 5.5) * 7)) * exp(-(t - 5.5) * 2.2);
+    for (unsigned i = 0; i < sizeof LOOPS / sizeof *LOOPS; i++) {
+        double u = ramp(t, LOOPS[i].at, LOOPS[i].at + LOOP_TIME);
+        if (u <= 0 || u >= 1) continue;
+        double turn = 360 * ease(u);
+        if (LOOPS[i].leg == 0) { p.thigh_l = turn; p.shin_l = 25 * sin(M_PI * u); }
+        else if (LOOPS[i].leg == 1) { p.thigh_r = -turn; p.shin_r = -25 * sin(M_PI * u); }
+        else {                                     /* legs together, swivelled round as one */
+            p.thigh_l = turn - 8; p.thigh_r = turn + 8; p.shin_l = p.shin_r = 0;
+            p.arm_l = 150; p.arm_r = -150; p.body = 10 * sin(2 * M_PI * u);
+            p.hang = fmin(1, 4 * sin(M_PI * u));
         }
-        /* and every sixth bar both arms windmill round, twice */
-        if (bar % 6 == 5) { p.arm_l = 720 * round + 20; p.arm_r = -720 * round - 20; }
+        p.hop = fmax(p.hop, 0.06 * sin(M_PI * u));
     }
-    /* the bow at the end: a hop back, a deep nod, arms flung wide */
+    for (unsigned i = 0; i < sizeof SPINS / sizeof *SPINS; i++) {
+        double u = ramp(t, SPINS[i], SPINS[i] + SPIN_TIME);
+        if (u <= 0 || u >= 1) continue;
+        Pose still = p;                                 /* limbs drawn in while he turns */
+        still.arm_l = 15; still.arm_r = -15; still.thigh_l = still.thigh_r = still.shin_l = still.shin_r = 0;
+        still.body = still.head = 0;
+        p = mix(p, still, sin(M_PI * u));
+        p.spin = cos(2 * M_PI * u);
+        p.hop = fmax(p.hop, 0.05 * sin(M_PI * u));
+    }
+    /* an arm windmill, twice round, now and then in the dance */
+    {
+        double u = ramp(t, FILM(8, 25.2), FILM(8, 26.6));
+        if (u > 0 && u < 1) { p.arm_l = 720 * u + 20; p.arm_r = -720 * u - 20; }
+        u = ramp(t, FILM(8, 41.2), FILM(8, 42.6));
+        if (u > 0 && u < 1) { p.arm_l = 720 * u + 20; p.arm_r = -720 * u - 20; }
+    }
+    *hat = hat_at(t, &p);
+    /* the bow at the end: a hop back, a deep nod, the hat swept wide */
     double bow = ease(ramp(t, END, END + 0.4)) * (1 - ease(ramp(t, END + 3.0, END + 3.4)));
     if (bow > 0) {
         Pose bw = p;
@@ -423,27 +570,34 @@ static double unit;
 static int sw, sh;
 static const Rgb RED = {150, 30, 34}, GOLD = {214, 168, 66}, BOARDS = {120, 82, 50};
 
-/* a point of the doll at rest (in the pictures' pixels) turned by a and put at (ox, oy) */
+/* a point of the doll at rest (in the pictures' pixels) turned by a */
 static void turn(double x, double y, double a, double *ox, double *oy)
 {
     double r = a * M_PI / 180, c = cos(r), s = sin(r);
     *ox = x * c - y * s; *oy = x * s + y * c;
 }
+/* One piece, its pin at (wx, wy), turned by angle. The whole doll is squeezed across
+ * by `spin` about cx as it turns round, and drawn the other way round when spin < 0. */
+static double spin_sx, spin_cx;
 static void piece(int which, int idx, double wx, double wy, double angle, double k)
 {
     flush(ren);
     if (!cur_tex || !cur_tex[which]) return;
     const Piece *pc = &PIECE[idx];
-    double w = sprite[which].w * k, h = sprite[which].h * k;
-    SDL_FRect dst = {(float)(wx - pc->pin_x * k), (float)(wy - pc->pin_y * k), (float)w, (float)h};
-    SDL_FPoint centre = {(float)(pc->pin_x * k), (float)(pc->pin_y * k)};
-    SDL_RenderCopyExF(ren, cur_tex[which], NULL, &dst, angle, &centre, SDL_FLIP_NONE);
+    double s = spin_sx, as = fabs(s) < 0.04 ? 0.04 : fabs(s);
+    int back = s < 0;
+    double w = sprite[which].w * k * as, h = sprite[which].h * k;
+    double px = (back ? sprite[which].w - pc->pin_x : pc->pin_x) * k * as;
+    wx = spin_cx + (wx - spin_cx) * s;
+    SDL_FRect dst = {(float)(wx - px), (float)(wy - pc->pin_y * k), (float)w, (float)h};
+    SDL_FPoint centre = {(float)px, (float)(pc->pin_y * k)};
+    SDL_RenderCopyExF(ren, cur_tex[which], NULL, &dst, back ? -angle : angle, &centre, back ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE);
 }
-enum { P_HEAD, P_BODY, P_ARM_L, P_ARM_R, P_THIGH_L, P_THIGH_R, P_SHIN_L, P_SHIN_R };
+enum { P_HEAD, P_HAT, P_BODY, P_ARM_L, P_ARM_R, P_THIGH_L, P_THIGH_R, P_SHIN_L, P_SHIN_R };
 
 /* The doll, standing on the stage floor at `floor`, `tall` high. Every piece hangs
  * from the one above it by its pin; the lower foot is put on the floor. */
-static void doll(Pose p, double floor, double tall)
+static void doll(Pose p, Hat hat, double floor, double tall)
 {
     const double HX = (PIECE[P_THIGH_L].at_x + PIECE[P_THIGH_R].at_x) / 2, HY = PIECE[P_THIGH_L].at_y;
     double k = tall / 916.0;
@@ -465,13 +619,36 @@ static void doll(Pose p, double floor, double tall)
     turn(0, foot_r, p.body + p.thigh_r + p.shin_r, &frx, &fry);
     klx += hlx; kly += hly; krx += hrx; kry += hry;
     flx += klx; fly += kly; frx += krx; fry += kry;
-    double lowest = fmax(fly, fry);
-    double ox = sx, oy = floor - lowest * k - p.hop * tall;
+    /* his lowest foot is on the floor; held up on his string, his hips stay where they
+     * are when he stands */
+    double rest = PIECE[P_SHIN_L].at_y - HY + foot_l;
+    double lowest = fmax(fly, fry) + (rest - fmax(fly, fry)) * p.hang;
+    double ox = sx, oy = floor - lowest * k - (p.hop + p.drop) * tall;
+    /* the hat: on his head, in his right hand, or flying */
+    double hx, hy, ha;
+    {
+        double dx, dy;
+        turn(PIECE[P_HAT].at_x - PIECE[P_HEAD].at_x, PIECE[P_HAT].at_y - PIECE[P_HEAD].at_y, p.body + p.head, &dx, &dy);
+        hx = nx + dx; hy = ny + dy; ha = p.body + p.head;
+        if (hat.mode == HAT_FLYING) { hx += hat.x * 916; hy += hat.y * 916; ha += hat.turn; }
+        if (hat.mode == HAT_HAND) {                    /* at the end of his right sleeve */
+            double tx, ty, len = sprite[SP_arm_r].h - PIECE[P_ARM_R].pin_y;
+            turn(sprite[SP_arm_r].w / 2.0 - PIECE[P_ARM_R].pin_x, len, p.body + p.arm_r, &tx, &ty);
+            hx = arx + tx; hy = ary + ty; ha = p.body + p.arm_r + 180;
+        }
+    }
     #undef REL
+    spin_sx = p.spin; spin_cx = ox;
+    /* his string, while he is let down on to the stage */
+    if (T < 7.5 || p.hang > 0.01) {
+        double a = T < 7.5 ? 1 - ramp(T, 6.0, 7.5) : p.hang;
+        line(ox + nx * k * p.spin, 0, ox + nx * k * p.spin, oy + (ny - 150) * k, unit * 0.12, col((Rgb){230, 225, 210}, 0.9 * a));
+        flush(ren);
+    }
     /* his shadow on the boards */
     {
         int n = 30;
-        double r = tall * 0.17 * (1 - p.hop * 4);
+        double r = tall * 0.17 * (1 - fmin(0.8, (p.hop + p.drop) * 4));
         vb_need(n + 1, 3 * n);
         int b0 = nv;
         vert(ox, floor, col(INK, 0.4));
@@ -479,7 +656,7 @@ static void doll(Pose p, double floor, double tall)
         for (int i = 0; i < n; i++) { ib[ni++] = b0; ib[ni++] = b0 + 1 + i; ib[ni++] = b0 + 1 + (i + 1) % n; }
         flush(ren);
     }
-    /* back to front: legs, body, head, arms; then the pins over all */
+    /* back to front: legs, body, head, arms, the hat; then the pins over all */
     piece(SP_shin_l, P_SHIN_L, ox + klx * k, oy + kly * k, p.body + p.thigh_l + p.shin_l, k);
     piece(SP_shin_r, P_SHIN_R, ox + krx * k, oy + kry * k, p.body + p.thigh_r + p.shin_r, k);
     piece(SP_thigh_l, P_THIGH_L, ox + hlx * k, oy + hly * k, p.body + p.thigh_l, k);
@@ -488,10 +665,11 @@ static void doll(Pose p, double floor, double tall)
     piece(SP_head, P_HEAD, ox + nx * k, oy + ny * k, p.body + p.head, k);
     piece(SP_arm_l, P_ARM_L, ox + alx * k, oy + aly * k, p.body + p.arm_l, k);
     piece(SP_arm_r, P_ARM_R, ox + arx * k, oy + ary * k, p.body + p.arm_r, k);
+    piece(SP_hat, P_HAT, ox + hx * k, oy + hy * k, ha, k);
     double pins[][2] = {{nx, ny}, {alx, aly}, {arx, ary}, {hlx, hly}, {hrx, hry}, {klx, kly}, {krx, kry}};
     for (int i = 0; i < 7; i++) {
-        double r = 7 * k * 1.4;
-        SDL_FRect d = {(float)(ox + pins[i][0] * k - r), (float)(oy + pins[i][1] * k - r), (float)(2 * r), (float)(2 * r)};
+        double r = 7 * k * 1.4 * fabs(p.spin);
+        SDL_FRect d = {(float)(ox + pins[i][0] * k * p.spin - r), (float)(oy + pins[i][1] * k - 7 * k * 1.4), (float)(2 * r), (float)(2 * 7 * k * 1.4)};
         if (cur_tex && cur_tex[SP_pin]) SDL_RenderCopyF(ren, cur_tex[SP_pin], NULL, &d);
     }
 }
@@ -556,7 +734,9 @@ static void draw_scene(SDL_Renderer *r, int w, int h)
     SDL_RenderClear(r);
     double floor = h * 0.86;
     stage_back(w, h, h * 0.71);
-    doll(pose_at(T), floor, h * 0.62);
+    Hat hat;
+    Pose p = pose_at(T, &hat);
+    doll(p, hat, floor, h * 0.62);
     double open = ease(ramp(T, 0.3, 3.0)) * (1 - ease(ramp(T, END + 2.8, END + 4.6)));
     stage_front(w, h, open);
     double dark = fmax(1 - ramp(T, 0, 0.5), ramp(T, SONG_LENGTH + GAP - 1, SONG_LENGTH + GAP));

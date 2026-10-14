@@ -5,25 +5,27 @@ A screensaver of Captain Spaulding, the African explorer of the Marx Brothers'
 dancing to the song from the film. Runs on Linux, Windows and macOS. One of the
 [Marx Brothers screensavers](https://github.com/mottipython/marx-screensavers).
 
-![The dance](docs/screenshots/04-the-dance.jpg)
+![The swivel](docs/screenshots/04-the-swivel.jpg)
 
 ## What it shows
 
-The curtains open on a painted sunrise. He marches on from the wings and marks time
-while the chorus sings "Hooray for Captain Spaulding"; through "Hello, I must be
-going" he keeps setting off for the wings and coming back; and in his dance he
-kicks like a jumping jack with his arms flung up, does a can-can, windmills his
-arms, and every so often swings a leg right round its pin. Every move is a quick
-jerk on the beat, then a hold, like a paper doll worked by hand.
-Then a bow, the curtains close, and it begins again. He keeps time with the music
-the whole way: the beats were found from the recording.
+The curtains open on a painted sunrise and he is let down on to the stage on a
+string. He marks time while the chorus sings "Hooray for Captain Spaulding", and
+through "Hello, I must be going" keeps setting off for the wings and coming back.
+Then he does his dance as he does it in the film, move for move: the hat thrown up,
+the knock-kneed shuffle, high kicks, a crouch, the hat waved overhead, a kicking
+lope across the stage and back, scissor kicks, and the hat held before him at the
+end. And because he is a paper doll he does what no man could: his legs swivel
+right round their pins together, and then one at a time. Every move is a quick
+jerk on the beat and a hold, like a doll worked by hand. He keeps time with the
+music the whole way. Then a bow, the curtains close, and it begins again.
 
 | | |
 |---|---|
-| ![](docs/screenshots/01-the-curtains-open.jpg) | ![](docs/screenshots/02-he-marches-on.jpg) |
-| The curtains open | He marches on |
-| ![](docs/screenshots/03-hooray.jpg) | ![](docs/screenshots/05-right-round.jpg) |
-| Hooray for Captain Spaulding | A leg right round its pin |
+| ![](docs/screenshots/02-let-down-on-a-string.jpg) | ![](docs/screenshots/03-hooray.jpg) |
+| Let down on a string | Hooray for Captain Spaulding |
+| ![](docs/screenshots/04-the-swivel.jpg) | ![](docs/screenshots/05-the-lope.jpg) |
+| The swivel | The lope |
 
 ## Where it all comes from
 
@@ -31,7 +33,7 @@ Everything in it is in the public domain in the United States.
 
 - **Captain Spaulding** is cut from the 1930 publicity photograph of Groucho Marx in
   the part ([Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Animal_Crackers_Captain_Spaulding.jpg)),
-  into head, body, sleeves, thighs and shins, with a white paper edge and brass
+  into head, pith helmet, body, sleeves, thighs and shins, with a white paper edge and brass
   split pins (`tools/outline.py`, `tools/make_doll.py`).
 - **The music** is the film's own: Captain Spaulding's arrival, "Hello, I must be
   going", "Hooray for Captain Spaulding" by Bert Kalmar and Harry Ruby, and his

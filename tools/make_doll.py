@@ -32,6 +32,14 @@ ARM_L = [(287, 215), (255, 240), (245, 280), (242, 325), (250, 380), (262, 420),
          (300, 462), (298, 420), (292, 380), (288, 330), (292, 285), (305, 250), (318, 228)]
 ARM_R = [(480, 210), (495, 235), (505, 280), (509, 340), (500, 400), (492, 440), (500, 470),
          (468, 470), (462, 440), (468, 400), (470, 340), (466, 285), (458, 250), (450, 222)]
+# his pith helmet, cut off at the brim so that he can take it off and throw it; under
+# it a cap of his black hair is drawn on the head
+HAT = [(296, 104), (305, 95), (320, 82), (328, 55), (345, 37), (372, 31), (400, 35), (424, 52), (432, 78),
+       (446, 92), (454, 106), (448, 122), (432, 132), (415, 130), (405, 96), (380, 90), (352, 92), (336, 100),
+       (332, 135), (318, 142), (304, 128)]
+HAIR = (334, 80, 410, 112)          # an oval of black hair, where the hat was over his head
+# the part of the brim's underside that his face covers: filled dark on the hat
+UNDER = [(332, 135), (336, 100), (352, 92), (380, 90), (405, 96), (415, 130), (410, 112), (380, 106), (350, 108)]
 # the gap between his legs, where the tail of his coat shows behind: cut away
 GAP = [(368, 590), (379, 586), (392, 590), (402, 600), (408, 652), (340, 652), (350, 602)]
 # the seat of his trousers, showing below where his jacket opens: it goes with the legs,
@@ -40,7 +48,8 @@ SEAT = [(262, 488), (267, 460), (282, 442), (300, 432), (325, 424), (350, 414), 
         (390, 407), (405, 420), (425, 427), (450, 435), (465, 445), (475, 465), (482, 488)]
 CROTCH = 380
 PIECES = [
-    ("head", lambda x, y: y < NECK[1] + 2, NECK, []),
+    ("head", lambda x, y: y < NECK[1] + 2, NECK, []),          # less the hat, plus his hair
+    ("hat", None, None, []),
     ("body", lambda x, y: (y >= NECK[1] + 2) & (y < 488), None, [NECK, SHOULDER_L, SHOULDER_R, HIP_L, HIP_R]),   # less the seat and arms
     ("arm_l", None, SHOULDER_L, []),
     ("arm_r", None, SHOULDER_R, []),
@@ -74,6 +83,11 @@ def main():
     gap = poly_mask(GAP, (W, H), k)
     whole &= ~gap
     seat = poly_mask(SEAT, (W, H), k) & whole
+    hat = (poly_mask(HAT, (W, H), k) | (ys < 90) | ((xs < 333) & (ys < 145))) & whole & (ys < NECK[1])
+    under = poly_mask(UNDER, (W, H), k)
+    hm = Image.new("L", (W, H), 0)
+    ImageDraw.Draw(hm).ellipse([v * k for v in HAIR], fill=255)
+    hair = (np.asarray(hm) > 0) & hat
     # all the light trouser cloth below his jacket goes with the legs, not the jacket
     trouser = whole & (np.asarray(photo) > 150) & (ys > 420) & ~arms["arm_l"] & ~arms["arm_r"]
     legs = seat | (ys >= 488) | trouser
@@ -88,9 +102,12 @@ def main():
     for name, test, pin, kids in PIECES:
         if name in arms:
             m = arms[name]
+        elif name == "hat":
+            m = hat | under
         else:
             m = whole & test(xs, ys)
             if name == "body": m &= ~legs & ~arms["arm_l"] & ~arms["arm_r"]
+            if name == "head": m = (m & ~hat) | hair
             if name.startswith("thigh"): m = whole & legs & (xs < CROTCH if name == "thigh_l" else xs >= CROTCH) & (ys < (KNEE_L if name == "thigh_l" else KNEE_R)[1] + 14)
         if pin is not None:                            # its tab, round the pin it turns on,
             cx, cy = pins_px(pin)                      # of its own cloth
@@ -105,6 +122,12 @@ def main():
         piece = np.zeros((H, W, 4), np.uint8)
         piece[np.asarray(edge) > 0] = (250, 246, 236, 255)
         piece[m, :3] = rgb[m]
+        if name == "hat":                              # the underside of the brim, where his face was
+            piece[under & ~hat, :3] = (40, 34, 30)
+        if name == "head":                             # his hair, slicked black, with a shine
+            hy = (ys - HAIR[1]) / (HAIR[3] - HAIR[1])
+            shade = (28 + 40 * np.clip(1 - abs(hy - 0.35) * 4, 0, 1)).astype(np.uint8)
+            piece[hair, 0] = shade[hair]; piece[hair, 1] = shade[hair]; piece[hair, 2] = (shade[hair] * 0.9).astype(np.uint8)
         img = Image.fromarray(piece[y0:y1, x0:x1], "RGBA")
         sw, sh = max(1, round(img.width * out_scale)), max(1, round(img.height * out_scale))
         img = img.resize((sw, sh), Image.LANCZOS)
