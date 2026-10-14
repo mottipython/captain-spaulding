@@ -12,8 +12,9 @@ dancing to the song from the film. Runs on Linux, Windows and macOS. One of the
 The curtains open on a painted sunrise and he is let down on to the stage on a
 string. He marks time while the chorus sings "Hooray for Captain Spaulding", and
 through "Hello, I must be going" keeps setting off for the wings and coming back.
-Right behind him, over a low hedge, Margaret Dumont, Zeppo and a chorus line
-of heads, cut from frames of the film, sway on the beat and flap their heads on
+Right behind him, held up on sticks like toy-theatre puppets, Margaret Dumont,
+Zeppo and a chorus line
+of heads on sticks, cut from frames of the film, sway on the beat and flap their heads on
 their own lines, as a South Park chorus would. Then he does his dance as he does it in the film, move for move: the hat thrown up,
 the knock-kneed shuffle, high kicks, a crouch, the hat waved overhead, a kicking
 lope across the stage and back, scissor kicks, and the hat held before him at the

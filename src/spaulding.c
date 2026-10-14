@@ -802,28 +802,15 @@ static void cast_member(int who, double x, double y, double head, double sway, d
     SDL_RenderCopyExF(ren, cur_tex[t], NULL, &dt, sway + flap, &pin, SDL_FLIP_NONE);
 }
 
-/* a hedge across the back of the stage, a printed cut-out ground row */
-static void hedge(int w, double top, double bottom)
+/* the stick a cut-out is held up on, from below the stage: from (x, top) down to
+ * the boards, leaning with it */
+static void stick(double x, double top, double floor, double lean)
 {
-    const Rgb LEAF = {72, 98, 58}, LEAF2 = {104, 132, 78};
-    int n = 34;
-    for (int pass = 0; pass < 3; pass++) {
-        for (int i = 0; i <= n; i++) {
-            double x = side_w + (w - 2 * side_w) * i / (double)n, r = (bottom - top) * (0.22 + 0.07 * sin(i * 2.7));
-            double y = top + r * 0.9 + (bottom - top) * 0.06 * sin(i * 1.3);
-            if (pass == 0) disc(x, y, r + unit * 0.25, col(INK, 1), col(INK, 1));
-            else if (pass == 1) disc(x, y, r, col(LEAF, 1), col(LEAF, 1));
-            else disc(x - r * 0.25, y - r * 0.3, r * 0.45, col(LEAF2, 0.8), col(LEAF2, 0));
-        }
-        if (pass == 1) rect(side_w, top + (bottom - top) * 0.5, w - 2 * side_w, (bottom - top) * 0.5, col(LEAF, 1));
-        flush(ren);
-    }
-    for (int i = 0; i < 160; i++) {                    /* engraved hatching */
-        double x = side_w + (w - 2 * side_w) * ((i * 0.618034) - floor(i * 0.618034));
-        double y = top + (bottom - top) * (0.35 + 0.6 * ((i * 0.381966) - floor(i * 0.381966)));
-        line(x, y, x + unit * 0.9, y - unit * 0.7, unit * 0.12, col(INK, 0.35));
-    }
-    line(side_w, bottom, w - side_w, bottom, unit * 0.3, col(INK, 1));
+    const Rgb WOOD = {150, 108, 62}, WOOD2 = {110, 76, 42};
+    double dx = (floor - top) * tan(lean * M_PI / 180);
+    line(x, top, x - dx, floor, unit * 0.75, col(INK, 1));
+    line(x, top, x - dx, floor, unit * 0.5, col(WOOD, 1));
+    line(x + unit * 0.12, top, x - dx + unit * 0.12, floor, unit * 0.12, col(WOOD2, 1));
     flush(ren);
 }
 
@@ -833,23 +820,23 @@ static void cast(int w, int h, double t)
     int b = beat_at(t, &ph);
     double s = snap(ph), side = (b & 1) ? 1 : -1;
     double lean = side * (2 * s - 1);                  /* -1..1, a snap to the other side on every beat */
-    /* right behind him, nearly his size: the hedge only hides them below the waist */
-    double top = h * 0.655, bottom = h * 0.74, head = h * 0.1;
-    double v = voice(t);
+    double floor = h * 0.73, head = h * 0.1, v = voice(t);
     double chorus = -30 * v * singing(t, CHORUS_SINGS, sizeof CHORUS_SINGS / sizeof *CHORUS_SINGS);
-    /* the chorus line, heads over the hedge, every other one bobbing the other way */
+    /* right behind him, each held up on a stick: the chorus as heads on sticks, every
+     * other one bobbing the other way, then Dumont and Zeppo nearer */
     static const double CX[] = {0.14, 0.42, 0.5, 0.58, 0.86};
     for (int i = 0; i < 5; i++) {
-        double alt = i & 1 ? -1 : 1;
-        int who = i & 1 ? C_MAN : C_WOMAN;
-        cast_member(who, w * CX[i], top + h * 0.02 - h * 0.02 * (1 + lean * alt) / 2, head * 0.85, 8 * lean * alt, chorus * (0.8 + 0.2 * alt));
+        double alt = i & 1 ? -1 : 1, y = h * 0.47 - h * 0.025 * (1 + lean * alt) / 2, a = 8 * lean * alt;
+        stick(w * CX[i], y - h * 0.01, floor, a);
+        cast_member(i & 1 ? C_MAN : C_WOMAN, w * CX[i], y, head * 0.85, a, chorus * (0.8 + 0.2 * alt));
     }
-    cast_member(C_DUMONT, w * 0.29, bottom - h * 0.04, head, 6 * lean,
-                -26 * v * singing(t, DUMONT_SINGS, 1));
-    cast_member(C_ZEPPO, w * 0.71, bottom - h * 0.04, head, -6 * lean,
+    double y = h * 0.6 - h * 0.012 * fabs(lean);
+    stick(w * 0.29, y - h * 0.01, floor + h * 0.01, 6 * lean);
+    cast_member(C_DUMONT, w * 0.29, y, head, 6 * lean, -26 * v * singing(t, DUMONT_SINGS, 1));
+    stick(w * 0.71, y - h * 0.01, floor + h * 0.01, -6 * lean);
+    cast_member(C_ZEPPO, w * 0.71, y, head, -6 * lean,
                 -30 * v * singing(t, ZEPPO_SINGS, sizeof ZEPPO_SINGS / sizeof *ZEPPO_SINGS));
     flush(ren);
-    hedge(w, top, bottom);
 }
 
 static void draw_scene(SDL_Renderer *r, int w, int h)
