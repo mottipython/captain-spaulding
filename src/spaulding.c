@@ -554,14 +554,24 @@ static Pose pose_at(double t, Hat *hat)
         u = ramp(t, FILM(9, 5.7), FILM(9, 7.2));
         if (u > 0 && u < 1) { p.arm_l = 720 * u + 20; p.arm_r = -720 * u - 20; }
     }
-    /* singing: the top of his head flaps open with the voices, as in South Park, all
-     * through the songs (not while he dances, nor at the bow) */
+    /* singing: the top of his head flaps open with the voices, as in South Park, but
+     * only on his own lines, found from the film (the others are Margaret Dumont,
+     * Zeppo, the chorus and the band) */
     {
+        static const double SINGS[][2] = {
+            {FILM(6, 58.6), FILM(7, 9.6)},     /* "Hello, I must be going ... I must be going" */
+            {FILM(7, 18.3), FILM(7, 27.2)},    /* "I'll stay a week or two ... I must be going" */
+            {FILM(7, 35.4), FILM(7, 45.0)},    /* "I'll do anything you say ... but I must be going" */
+            {FILM(7, 57.6), FILM(8, 3.8)},     /* "I never take a drink unless somebody's buying" */
+            {FILM(8, 7.4), FILM(8, 16.8)},     /* "I hate a dirty joke ... who knows how to tell it" */
+        };
+        double sing = 0;
+        for (unsigned i = 0; i < sizeof SINGS / sizeof *SINGS; i++)
+            sing = fmax(sing, ramp(t, SINGS[i][0] - 0.15, SINGS[i][0]) * (1 - ramp(t, SINGS[i][1], SINGS[i][1] + 0.15)));
         int n = sizeof VOICE / sizeof *VOICE;
         double f = t * VOICE_RATE;
         int i = (int)f;
         double v = i + 1 < n ? (VOICE[i] + (VOICE[i + 1] - VOICE[i]) * (f - i)) / 255.0 : 0;
-        double sing = ramp(t, 7.5, 8.5) * (1 - ramp(t, FILM(8, 18.0), FILM(8, 18.6))) + ramp(t, FILM(8, 51), FILM(8, 52)) * (1 - ramp(t, END - 0.5, END));
         p.flap = -34 * v * sing;
     }
     *hat = hat_at(t, &p);
