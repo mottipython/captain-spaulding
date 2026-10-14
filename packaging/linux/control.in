@@ -1,0 +1,18 @@
+Package: captain-spaulding
+Version: @VERSION@
+Section: games
+Priority: optional
+Architecture: @ARCH@
+Depends: libc6 (>= 2.38), libsdl2-2.0-0 (>= 2.0.18), swayidle
+Installed-Size: @SIZE@
+Maintainer: Motti Schleider <motti.schleider@gmail.com>
+Description: Hooray for Captain Spaulding, a paper-doll screensaver
+ Captain Spaulding, the African explorer of the Marx Brothers' Animal Crackers
+ (1930), as a jointed paper doll cut from the film's publicity photograph, with
+ brass split pins at his neck, hips and knees. On a Victorian toy-theatre stage
+ (Pollock's scenery, about 1850) he marches on, marks time, keeps making for
+ the wings, and dances, kicking his legs right round their pins, to the song
+ from the film.
+ .
+ On Wayland desktops it starts by itself after five minutes idle.
+ captain-spaulding-screensaver changes the delay or turns it off.

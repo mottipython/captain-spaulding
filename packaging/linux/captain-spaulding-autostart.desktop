@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Hooray for Captain Spaulding screensaver
+Comment=Start the Captain Spaulding when the session has been idle
+Exec=captain-spaulding-screensaver watch
+Icon=captain-spaulding
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

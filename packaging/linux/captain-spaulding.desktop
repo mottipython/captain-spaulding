@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Hooray for Captain Spaulding
+Comment=Captain Spaulding as a jointed paper doll, dancing to the song from Animal Crackers
+Exec=captain-spaulding --window
+Icon=captain-spaulding
+Categories=Game;LogicGame;Education;Math;
+Keywords=comedy;paper doll;toy theatre;music;screensaver;

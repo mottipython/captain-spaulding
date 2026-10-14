@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Hooray for Captain Spaulding
+Comment=Captain Spaulding as a jointed paper doll, dancing to the song from Animal Crackers
+Exec=captain-spaulding
+TryExec=captain-spaulding
+X-Screensaver-Standalone=true
+X-Screensaver-Snapshot=captain-spaulding --snapshot %o --size %wx%h --time 30 --mute
