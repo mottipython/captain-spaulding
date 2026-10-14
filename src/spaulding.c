@@ -809,7 +809,7 @@ static void hedge(int w, double top, double bottom)
     int n = 34;
     for (int pass = 0; pass < 3; pass++) {
         for (int i = 0; i <= n; i++) {
-            double x = side_w + (w - 2 * side_w) * i / (double)n, r = (bottom - top) * (0.32 + 0.1 * sin(i * 2.7));
+            double x = side_w + (w - 2 * side_w) * i / (double)n, r = (bottom - top) * (0.22 + 0.07 * sin(i * 2.7));
             double y = top + r * 0.9 + (bottom - top) * 0.06 * sin(i * 1.3);
             if (pass == 0) disc(x, y, r + unit * 0.25, col(INK, 1), col(INK, 1));
             else if (pass == 1) disc(x, y, r, col(LEAF, 1), col(LEAF, 1));
@@ -833,18 +833,20 @@ static void cast(int w, int h, double t)
     int b = beat_at(t, &ph);
     double s = snap(ph), side = (b & 1) ? 1 : -1;
     double lean = side * (2 * s - 1);                  /* -1..1, a snap to the other side on every beat */
-    double top = h * 0.672, bottom = h * 0.735, head = h * 0.068;
+    /* right behind him, nearly his size: the hedge only hides them below the waist */
+    double top = h * 0.655, bottom = h * 0.74, head = h * 0.1;
     double v = voice(t);
     double chorus = -30 * v * singing(t, CHORUS_SINGS, sizeof CHORUS_SINGS / sizeof *CHORUS_SINGS);
     /* the chorus line, heads over the hedge, every other one bobbing the other way */
-    for (int i = 0; i < 6; i++) {
-        double x = w * (0.31 + 0.076 * i), alt = i & 1 ? -1 : 1;
+    static const double CX[] = {0.14, 0.42, 0.5, 0.58, 0.86};
+    for (int i = 0; i < 5; i++) {
+        double alt = i & 1 ? -1 : 1;
         int who = i & 1 ? C_MAN : C_WOMAN;
-        cast_member(who, x, top + h * 0.012 - h * 0.012 * (1 + lean * alt) / 2, head * 0.95, 7 * lean * alt, chorus * (0.8 + 0.2 * alt));
+        cast_member(who, w * CX[i], top + h * 0.02 - h * 0.02 * (1 + lean * alt) / 2, head * 0.85, 8 * lean * alt, chorus * (0.8 + 0.2 * alt));
     }
-    cast_member(C_DUMONT, w * 0.19, bottom - h * 0.02, head, 5 * lean,
+    cast_member(C_DUMONT, w * 0.29, bottom - h * 0.04, head, 6 * lean,
                 -26 * v * singing(t, DUMONT_SINGS, 1));
-    cast_member(C_ZEPPO, w * 0.81, bottom - h * 0.02, head, -5 * lean,
+    cast_member(C_ZEPPO, w * 0.71, bottom - h * 0.04, head, -6 * lean,
                 -30 * v * singing(t, ZEPPO_SINGS, sizeof ZEPPO_SINGS / sizeof *ZEPPO_SINGS));
     flush(ren);
     hedge(w, top, bottom);
