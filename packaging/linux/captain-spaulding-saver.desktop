@@ -6,3 +6,4 @@ Exec=captain-spaulding
 TryExec=captain-spaulding
 X-Screensaver-Standalone=true
 X-Screensaver-Snapshot=captain-spaulding --snapshot %o --size %wx%h --time 30 --mute
+X-Screensaver-Settings=captain-spaulding --settings
