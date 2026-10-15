@@ -1,5 +1,5 @@
 # Hooray for Captain Spaulding - a paper-doll screensaver of Captain Spaulding
-VERSION  := 0.1.0
+VERSION  := 1.0.0
 PREFIX   ?= /usr
 SYSCONFDIR ?= /etc
 DESTDIR  ?=
